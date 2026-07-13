@@ -19,7 +19,12 @@ def format_alert_message(event: str, location: str, expires: str, description: s
     )
 
 
-def send_message(serial_port: str, message: str, transport: Any | None = None) -> bool:
+def send_message(
+    serial_port: str,
+    message: str,
+    transport: Any | None = None,
+    channel: str | None = None,
+) -> bool:
     """Send a message over MeshCore using the meshcore Python package."""
     if transport is None:
         client = MeshCoreClient(serial_port)
@@ -32,20 +37,20 @@ def send_message(serial_port: str, message: str, transport: Any | None = None) -
             raise RuntimeError("send_message must be run from a synchronous context")
 
         try:
-            return asyncio.run(_send_with_client(client, message))
+            return asyncio.run(_send_with_client(client, message, channel))
         except RuntimeError:
             return False
 
-    return bool(transport.send(serial_port, message))
+    return bool(transport.send(serial_port, message, channel=channel))
 
 
-async def _send_with_client(client: MeshCoreClient, message: str) -> bool:
+async def _send_with_client(client: MeshCoreClient, message: str, channel: str | None = None) -> bool:
     """Connect to the mesh node and send the message asynchronously."""
     connected = await client.connect()
     if not connected:
         return False
 
     try:
-        return await client.send_message(message)
+        return await client.send_message(message, channel=channel)
     finally:
         await client.disconnect()

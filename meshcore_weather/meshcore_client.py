@@ -7,6 +7,7 @@ from typing import Any
 
 from meshcore import MeshCore
 from meshcore.commands import CommandHandler
+from meshcore.events import EventType
 
 
 class MeshCoreClient:
@@ -32,12 +33,25 @@ class MeshCoreClient:
             await self._client.disconnect()
             self._client = None
 
-    async def send_message(self, message: str) -> bool:
+    async def send_message(self, message: str, channel: str | None = None) -> bool:
         """Send a text message using the MeshCore command handler."""
         if self._client is None:
             return False
 
         command_handler: CommandHandler = self._client.commands
+
+        if channel and str(channel).strip():
+            channel_name = str(channel).strip()
+            try:
+                setup_event = await command_handler.set_channel(0, channel_name)
+                if setup_event.type == EventType.ERROR:
+                    return False
+
+                event = await command_handler.send_chan_msg(0, message)
+            except Exception:
+                return False
+            return event.type not in {EventType.ERROR}
+
         payload = message.encode("utf-8")
         event = await command_handler.send(payload, expected_events=None)
-        return bool(event)
+        return event.type not in {EventType.ERROR}

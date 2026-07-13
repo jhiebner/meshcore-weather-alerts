@@ -51,7 +51,7 @@ def run_gateway(config_path: Path | str | None = None, stop_event: threading.Eve
                 expires=alert.expires,
                 description=alert.description,
             )
-            sent = send_message(config.serial_port, message)
+            sent = send_message(config.serial_port, message, channel=config.meshcore_channel)
             if sent:
                 console.print(f"[magenta]Broadcasting:[/magenta] {message}")
             else:
@@ -76,7 +76,7 @@ def run_test_mode(config_path: Path | str | None = None) -> bool:
 
     message = "This is a test weather alert."
     console.print(f"[cyan]Sending test alert to {config.meshcore_channel}[/cyan]")
-    sent = send_message(config.serial_port, message)
+    sent = send_message(config.serial_port, message, channel=config.meshcore_channel)
     if sent:
         console.print("[green]Test alert sent successfully.[/green]")
     else:
