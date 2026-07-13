@@ -63,7 +63,7 @@ def run_gateway(config_path: Path | str | None = None, stop_event: threading.Eve
 
 
 def run_test_mode(config_path: Path | str | None = None) -> bool:
-    """Send a test weather alert over the configured MeshCore channel."""
+    """Fetch active NWS alerts, choose one to broadcast, and send it over the configured MeshCore channel."""
     destination = Path(config_path) if config_path is not None else Path("config.yaml")
     config = load_config(destination)
     errors = config.validate()
@@ -74,13 +74,28 @@ def run_test_mode(config_path: Path | str | None = None) -> bool:
             console.print(f"- {error}")
         return False
 
-    message = "This is a test weather alert."
-    console.print(f"[cyan]Sending test alert to {config.meshcore_channel}[/cyan]")
+    payload = fetch_active_alerts()
+    alerts = build_alerts(payload)
+    filtered = filter_alerts(alerts, config)
+
+    if not filtered:
+        console.print("[yellow]No matching alerts were found from the NWS feed.[/yellow]")
+        return False
+
+    alert = filtered[0]
+    message = format_alert_message(
+        event=alert.event,
+        location=alert.area_desc,
+        expires=alert.expires,
+        description=alert.description,
+    )
+    console.print(f"[cyan]Sending alert to {config.meshcore_channel}[/cyan]")
+    console.print(f"[cyan]{alert.event} - {alert.area_desc}[/cyan]")
     sent = send_message(config.serial_port, message, channel=config.meshcore_channel)
     if sent:
-        console.print("[green]Test alert sent successfully.[/green]")
+        console.print("[green]Alert sent successfully.[/green]")
     else:
-        console.print("[yellow]Test alert could not be sent.[/yellow]")
+        console.print("[yellow]Alert could not be sent.[/yellow]")
         console.print("[yellow]The MeshCore device may be disconnected, unavailable, or not reachable on the configured serial port.[/yellow]")
 
     return sent
