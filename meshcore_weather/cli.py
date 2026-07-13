@@ -62,6 +62,30 @@ def run_gateway(config_path: Path | str | None = None, stop_event: threading.Eve
     console.print("[yellow]Gateway stopped.[/yellow]")
 
 
+def run_test_mode(config_path: Path | str | None = None) -> bool:
+    """Send a test weather alert over the configured MeshCore channel."""
+    destination = Path(config_path) if config_path is not None else Path("config.yaml")
+    config = load_config(destination)
+    errors = config.validate()
+
+    if errors:
+        console.print("[red]Configuration is invalid:[/red]")
+        for error in errors:
+            console.print(f"- {error}")
+        return False
+
+    message = "This is a test weather alert."
+    console.print(f"[cyan]Sending test alert to {config.meshcore_channel}[/cyan]")
+    sent = send_message(config.serial_port, message)
+    if sent:
+        console.print("[green]Test alert sent successfully.[/green]")
+    else:
+        console.print("[yellow]Test alert could not be sent.[/yellow]")
+        console.print("[yellow]The MeshCore device may be disconnected, unavailable, or not reachable on the configured serial port.[/yellow]")
+
+    return sent
+
+
 def main() -> None:
     """Main CLI entry point."""
 
@@ -126,7 +150,7 @@ def main() -> None:
         return
 
     if args.command == "test":
-        console.print("[cyan]Test mode coming soon.[/cyan]")
+        run_test_mode(config_path)
         return
 
     console.print(f"[bold cyan]MeshCore Weather Gateway[/bold cyan]")
