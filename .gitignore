@@ -18,6 +18,7 @@ venv/
 # Local Configuration
 config.yaml
 config.yml
+context
 
 # Build Artifacts
 build/
