@@ -11,6 +11,16 @@ from meshcore_weather.config import GatewayConfig
 
 
 @dataclass
+class Observation:
+    """A normalized current weather observation."""
+
+    temperature_f: float | None = None
+    humidity_percent: float | None = None
+    station_id: str | None = None
+    observation_time: str | None = None
+
+
+@dataclass
 class Alert:
     """A normalized weather alert."""
 
@@ -35,6 +45,53 @@ def fetch_active_alerts(url: str = "https://api.weather.gov/alerts/active") -> d
         return response.json()
     except Exception:
         return {}
+
+
+def fetch_weather_observation(location: str | None = None) -> Observation | None:
+    """Fetch current weather conditions for the provided location from the NWS API."""
+    if not location:
+        return None
+
+    try:
+        response = requests.get(
+            "https://api.weather.gov/points/" + location,
+            timeout=10,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        observation_url = payload.get("properties", {}).get("observationStations")
+        if not observation_url:
+            return None
+
+        stations_response = requests.get(observation_url, timeout=10)
+        stations_response.raise_for_status()
+        stations_payload = stations_response.json()
+        features = stations_payload.get("features", [])
+        if not features:
+            return None
+
+        station_id = features[0].get("properties", {}).get("stationIdentifier")
+        if not station_id:
+            return None
+
+        obs_response = requests.get(
+            f"https://api.weather.gov/stations/{station_id}/observations/latest",
+            timeout=10,
+        )
+        obs_response.raise_for_status()
+        obs_payload = obs_response.json()
+        properties = obs_payload.get("properties", {})
+        temperature = properties.get("temperature", {}).get("value")
+        humidity = properties.get("relativeHumidity", {}).get("value")
+
+        return Observation(
+            temperature_f=float(temperature) * 9 / 5 + 32 if temperature is not None else None,
+            humidity_percent=float(humidity) if humidity is not None else None,
+            station_id=str(station_id),
+            observation_time=str(properties.get("timestamp", "")),
+        )
+    except Exception:
+        return None
 
 
 def build_alerts(payload: dict[str, Any]) -> list[Alert]:

@@ -12,7 +12,7 @@ from rich.console import Console
 from meshcore_weather.broadcast import format_alert_message, send_message
 from meshcore_weather.config import GatewayConfig, load_config, save_config
 from meshcore_weather.dedupe import AlertTracker
-from meshcore_weather.nws import Alert, build_alerts, fetch_active_alerts, filter_alerts
+from meshcore_weather.nws import Alert, build_alerts, fetch_active_alerts, fetch_weather_observation, filter_alerts
 from meshcore_weather.setup_wizard import run_setup
 from meshcore_weather.version import __version__
 
@@ -78,24 +78,48 @@ def run_test_mode(config_path: Path | str | None = None) -> bool:
     alerts = build_alerts(payload)
     filtered = filter_alerts(alerts, config)
 
-    if not filtered:
-        console.print("[yellow]No matching alerts were found from the NWS feed.[/yellow]")
+    if filtered:
+        alert = filtered[0]
+        message = format_alert_message(
+            event=alert.event,
+            location=alert.area_desc,
+            expires=alert.expires,
+            description=alert.description,
+        )
+        console.print(f"[cyan]Sending alert to {config.meshcore_channel}[/cyan]")
+        console.print(f"[cyan]{alert.event} - {alert.area_desc}[/cyan]")
+        sent = send_message(config.serial_port, message, channel=config.meshcore_channel)
+        if sent:
+            console.print("[green]Alert sent successfully.[/green]")
+        else:
+            console.print("[yellow]Alert could not be sent.[/yellow]")
+            console.print("[yellow]The MeshCore device may be disconnected, unavailable, or not reachable on the configured serial port.[/yellow]")
+        return sent
+
+    location = ""
+    if config.tracked_locations:
+        location = str(config.tracked_locations[0].get("county", "")).strip()
+    if config.state and location:
+        location = f"{config.state.lower()}/{location.lower()}"
+    observation = fetch_weather_observation(location)
+
+    if observation is None:
+        console.print("[yellow]No matching alerts or observation data were found from the NWS feed.[/yellow]")
         return False
 
-    alert = filtered[0]
-    message = format_alert_message(
-        event=alert.event,
-        location=alert.area_desc,
-        expires=alert.expires,
-        description=alert.description,
-    )
-    console.print(f"[cyan]Sending alert to {config.meshcore_channel}[/cyan]")
-    console.print(f"[cyan]{alert.event} - {alert.area_desc}[/cyan]")
+    parts = []
+    if observation.temperature_f is not None:
+        parts.append(f"Temp: {observation.temperature_f:.1f}F")
+    if observation.humidity_percent is not None:
+        parts.append(f"Humidity: {observation.humidity_percent:.0f}%")
+
+    message = "Current weather: " + ", ".join(parts) if parts else "Current weather: unavailable"
+    console.print(f"[cyan]Sending current weather to {config.meshcore_channel}[/cyan]")
     sent = send_message(config.serial_port, message, channel=config.meshcore_channel)
     if sent:
-        console.print("[green]Alert sent successfully.[/green]")
+        console.print("[green]Current weather sent successfully.[/green]")
     else:
-        console.print("[yellow]Alert could not be sent.[/yellow]")
+        console.print("[yellow]Current weather could not be sent.[/yellow]")
         console.print("[yellow]The MeshCore device may be disconnected, unavailable, or not reachable on the configured serial port.[/yellow]")
 
     return sent
