@@ -50,6 +50,7 @@ def build_configuration_summary(config: GatewayConfig) -> str:
 
     lines.extend(
         [
+            f"- MeshCore channel: {config.meshcore_channel or '#weather-alert'}",
             f"- Check interval: {config.poll_interval_seconds} seconds",
             f"- Repeat interval: {config.repeat_interval_minutes} minutes",
         ]
@@ -75,7 +76,7 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
     ).strip()
 
     state = normalize_state(
-        Prompt.ask("State code (for example NE)", default="NE")
+        Prompt.ask("State code (for example NE)", default="")
     )
 
     county_inputs: list[str] = []
@@ -90,8 +91,11 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
 
     alert_type_choices = []
     while not alert_type_choices:
+        console.print("Select alert types to broadcast:")
+        for index, alert_type in enumerate(DEFAULT_ALERT_TYPES, start=1):
+            console.print(f"  {index}. {alert_type}")
         raw = Prompt.ask(
-            "Alert types (comma-separated numbers, e.g. 1,2,3)",
+            "Enter numbers separated by commas (for example 1,2,3)",
             default=",".join(
                 str(index) for index, _ in enumerate(DEFAULT_ALERT_TYPES, start=1)
             ),
@@ -101,6 +105,12 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
         except ValueError as exc:
             console.print(f"[red]{exc}[/red]")
             console.print("Please enter numbers such as 1,2,3.")
+
+    meshcore_channel = Prompt.ask(
+        "MeshCore channel to send alerts to",
+        default="#weather-alert",
+        show_default=True,
+    ).strip() or "#weather-alert"
 
     poll_interval = validate_poll_interval(
         IntPrompt.ask("Check for alerts every how many seconds?", default=60)
@@ -116,6 +126,7 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
         alert_types=alert_type_choices,
         poll_interval_seconds=poll_interval,
         repeat_interval_minutes=repeat_interval,
+        meshcore_channel=meshcore_channel,
     )
 
     console.print()

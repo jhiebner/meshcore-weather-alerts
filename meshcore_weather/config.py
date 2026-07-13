@@ -19,6 +19,7 @@ class GatewayConfig:
     alert_types: list[str] = field(default_factory=list)
     poll_interval_seconds: int = 60
     repeat_interval_minutes: int = 15
+    meshcore_channel: str = "#weather-alert"
     logging_level: str = "INFO"
 
     def validate(self) -> list[str]:
@@ -52,7 +53,10 @@ def save_config(config: GatewayConfig, path: Path | str | None = None) -> Path:
     destination.write_text(
         yaml.safe_dump(
             {
-                "meshcore": {"serial_port": config.serial_port},
+                "meshcore": {
+                    "serial_port": config.serial_port,
+                    "channel": config.meshcore_channel,
+                },
                 "weather": {
                     "state": config.state,
                     "tracked_locations": config.tracked_locations,
@@ -93,5 +97,6 @@ def load_config(path: Path | str | None = None) -> GatewayConfig:
         alert_types=list(weather.get("alert_types", [])),
         poll_interval_seconds=int(schedule.get("poll_interval_seconds", 60)),
         repeat_interval_minutes=int(schedule.get("repeat_interval_minutes", 15)),
+        meshcore_channel=str(meshcore.get("channel", "#weather-alert")),
         logging_level=str(logging_.get("level", "INFO")),
     )
