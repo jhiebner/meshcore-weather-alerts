@@ -139,6 +139,35 @@ def fetch_forecast(location: str | None = None) -> list[ForecastPeriod]:
         return []
 
 
+def fetch_location_zones(location: str | None = None) -> set[str]:
+    """Fetch the NWS forecast/county zones for the provided coordinates."""
+    if not location:
+        return set()
+
+    try:
+        response = requests.get(
+            "https://api.weather.gov/points/" + location,
+            timeout=10,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        properties = payload.get("properties", {})
+        zones: set[str] = set()
+
+        for key in ("forecastZone", "county", "fireWeatherZone"):
+            value = properties.get(key)
+            if isinstance(value, str):
+                zones.add(value.rsplit("/", 1)[-1])
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, str):
+                        zones.add(item.rsplit("/", 1)[-1])
+
+        return zones
+    except Exception:
+        return set()
+
+
 def build_forecast_message(payload: dict[str, Any]) -> str:
     """Build a compact message with the first forecast period for the day."""
     periods = payload.get("properties", {}).get("periods", [])
@@ -192,12 +221,19 @@ def build_alerts(payload: dict[str, Any]) -> list[Alert]:
     return alerts
 
 
-def filter_alerts(alerts: list[Alert], config: GatewayConfig) -> list[Alert]:
-    """Filter alerts to the configured alert types."""
+def filter_alerts(alerts: list[Alert], config: GatewayConfig, location_zones: set[str] | None = None) -> list[Alert]:
+    """Filter alerts to the configured alert types and local forecast zones when available."""
     filtered: list[Alert] = []
+    local_zones = set(location_zones or set())
+
     for alert in alerts:
         if alert.event not in config.alert_types:
             continue
+
+        if local_zones:
+            alert_zones = {zone for zone in alert.zones if zone}
+            if alert_zones and not alert_zones.intersection(local_zones):
+                continue
 
         filtered.append(alert)
 

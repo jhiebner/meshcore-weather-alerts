@@ -12,7 +12,15 @@ from rich.console import Console
 from meshcore_weather.broadcast import format_alert_message, send_message
 from meshcore_weather.config import GatewayConfig, load_config, save_config
 from meshcore_weather.dedupe import AlertTracker
-from meshcore_weather.nws import Alert, build_alerts, build_forecast_message, fetch_active_alerts, fetch_forecast, filter_alerts
+from meshcore_weather.nws import (
+    Alert,
+    build_alerts,
+    build_forecast_message,
+    fetch_active_alerts,
+    fetch_forecast,
+    fetch_location_zones,
+    filter_alerts,
+)
 from meshcore_weather.setup_wizard import run_setup
 from meshcore_weather.version import __version__
 
@@ -39,7 +47,10 @@ def run_gateway(config_path: Path | str | None = None, stop_event: threading.Eve
         console.print("[cyan]Checking for weather alerts...[/cyan]")
         payload = fetch_active_alerts()
         alerts = build_alerts(payload)
-        filtered = filter_alerts(alerts, config)
+        location = ""
+        if config.latitude is not None and config.longitude is not None:
+            location = f"{config.latitude},{config.longitude}"
+        filtered = filter_alerts(alerts, config, location_zones=fetch_location_zones(location))
 
         for alert in filtered:
             if not tracker.should_broadcast(alert.id):
@@ -76,7 +87,10 @@ def run_test_mode(config_path: Path | str | None = None) -> bool:
 
     payload = fetch_active_alerts()
     alerts = build_alerts(payload)
-    filtered = filter_alerts(alerts, config)
+    location = ""
+    if config.latitude is not None and config.longitude is not None:
+        location = f"{config.latitude},{config.longitude}"
+    filtered = filter_alerts(alerts, config, location_zones=fetch_location_zones(location))
 
     if filtered:
         alert = filtered[0]
@@ -96,9 +110,6 @@ def run_test_mode(config_path: Path | str | None = None) -> bool:
             console.print("[yellow]The MeshCore device may be disconnected, unavailable, or not reachable on the configured serial port.[/yellow]")
         return sent
 
-    location = ""
-    if config.latitude is not None and config.longitude is not None:
-        location = f"{config.latitude},{config.longitude}"
     forecast = fetch_forecast(location)
     if not forecast:
         console.print("[yellow]No forecast data was found from the NWS feed.[/yellow]")
