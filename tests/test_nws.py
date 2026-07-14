@@ -1,5 +1,5 @@
 from meshcore_weather.config import GatewayConfig
-from meshcore_weather.nws import Alert, build_alerts, filter_alerts
+from meshcore_weather.nws import Alert, build_alerts, build_forecast_message, filter_alerts
 
 
 SAMPLE_ALERTS = {
@@ -49,6 +49,8 @@ def test_build_alerts_parses_sample_payload() -> None:
 def test_filter_alerts_matches_configured_county_and_alert_type() -> None:
     config = GatewayConfig(
         serial_port="/dev/ttyUSB0",
+        latitude=40.7,
+        longitude=-74.0,
         state="NE",
         tracked_locations=[{"county": "York", "nws_zone": "NEC185"}],
         alert_types=["Tornado Warning"],
@@ -62,3 +64,25 @@ def test_filter_alerts_matches_configured_county_and_alert_type() -> None:
     assert len(filtered) == 1
     assert filtered[0].id == "abc123"
     assert isinstance(filtered[0], Alert)
+
+
+def test_build_forecast_message_formats_today_s_forecast() -> None:
+    payload = {
+        "properties": {
+            "periods": [
+                {
+                    "name": "Today",
+                    "shortForecast": "Partly Sunny",
+                    "detailedForecast": "Mostly sunny with light winds.",
+                    "temperature": 82,
+                    "temperatureUnit": "F",
+                }
+            ]
+        }
+    }
+
+    message = build_forecast_message(payload)
+
+    assert "Today" in message
+    assert "Partly Sunny" in message
+    assert "82" in message

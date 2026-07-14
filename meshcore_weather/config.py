@@ -14,6 +14,8 @@ class GatewayConfig:
     """Runtime configuration for the gateway."""
 
     serial_port: str = ""
+    latitude: float | None = None
+    longitude: float | None = None
     state: str = ""
     tracked_locations: list[dict[str, str]] = field(default_factory=list)
     alert_types: list[str] = field(default_factory=list)
@@ -28,6 +30,12 @@ class GatewayConfig:
 
         if not self.serial_port.strip():
             errors.append("serial_port")
+
+        if self.latitude is None:
+            errors.append("latitude")
+
+        if self.longitude is None:
+            errors.append("longitude")
 
         if not self.state.strip():
             errors.append("state")
@@ -58,6 +66,8 @@ def save_config(config: GatewayConfig, path: Path | str | None = None) -> Path:
                     "channel": config.meshcore_channel,
                 },
                 "weather": {
+                    "latitude": config.latitude,
+                    "longitude": config.longitude,
                     "state": config.state,
                     "tracked_locations": config.tracked_locations,
                     "alert_types": config.alert_types,
@@ -92,6 +102,8 @@ def load_config(path: Path | str | None = None) -> GatewayConfig:
 
     return GatewayConfig(
         serial_port=str(meshcore.get("serial_port", "")),
+        latitude=float(weather.get("latitude", 0)) if str(weather.get("latitude", "")).strip() else None,
+        longitude=float(weather.get("longitude", 0)) if str(weather.get("longitude", "")).strip() else None,
         state=str(weather.get("state", "")),
         tracked_locations=list(weather.get("tracked_locations", [])),
         alert_types=list(weather.get("alert_types", [])),

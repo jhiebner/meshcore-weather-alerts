@@ -15,6 +15,32 @@ def normalize_county(value: str) -> str:
     return " ".join(value.strip().split())
 
 
+def validate_latitude(value: int | float | str) -> float:
+    """Return a validated latitude value."""
+    try:
+        parsed = float(str(value).strip())
+    except ValueError as exc:
+        raise ValueError("latitude must be a number") from exc
+
+    if parsed < -90 or parsed > 90:
+        raise ValueError("latitude must be between -90 and 90")
+
+    return parsed
+
+
+def validate_longitude(value: int | float | str) -> float:
+    """Return a validated longitude value."""
+    try:
+        parsed = float(str(value).strip())
+    except ValueError as exc:
+        raise ValueError("longitude must be a number") from exc
+
+    if parsed < -180 or parsed > 180:
+        raise ValueError("longitude must be between -180 and 180")
+
+    return parsed
+
+
 def validate_poll_interval(value: int | str) -> int:
     """Return a validated poll interval in seconds."""
     try:

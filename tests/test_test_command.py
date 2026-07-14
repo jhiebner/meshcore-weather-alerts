@@ -18,7 +18,7 @@ def test_run_test_mode_fetches_alerts_and_broadcasts_one(tmp_path, monkeypatch) 
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
         "meshcore:\n  serial_port: /dev/ttyUSB0\n  channel: '#weather-alert'\n"
-        "weather:\n  state: NE\n  tracked_locations:\n    - county: York\n      nws_zone: NEC185\n"
+        "weather:\n  latitude: 40.7\n  longitude: -74.0\n  state: NE\n  tracked_locations:\n    - county: York\n      nws_zone: NEC185\n"
         "  alert_types:\n    - Tornado Warning\n"
         "schedule:\n  poll_interval_seconds: 60\n  repeat_interval_minutes: 15\n",
         encoding="utf-8",

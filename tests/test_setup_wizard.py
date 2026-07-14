@@ -1,10 +1,12 @@
 from meshcore_weather.config import GatewayConfig
-from meshcore_weather.setup_wizard import build_configuration_summary
+from meshcore_weather.setup_wizard import build_configuration_summary, build_setup_defaults
 
 
 def test_configuration_summary_includes_key_values() -> None:
     config = GatewayConfig(
         serial_port="/dev/ttyUSB0",
+        latitude=40.7,
+        longitude=-74.0,
         state="NE",
         tracked_locations=[{"county": "York", "nws_zone": "NEC185"}],
         alert_types=["Tornado Warning", "Severe Thunderstorm Warning"],
@@ -18,3 +20,29 @@ def test_configuration_summary_includes_key_values() -> None:
     assert "/dev/ttyUSB0" in summary
     assert "York" in summary
     assert "Tornado Warning" in summary
+
+
+def test_build_setup_defaults_uses_existing_config_values() -> None:
+    config = GatewayConfig(
+        serial_port="/dev/ttyUSB1",
+        latitude=41.6,
+        longitude=-93.6,
+        state="IA",
+        tracked_locations=[{"county": "Polk", "nws_zone": "IAC153"}],
+        alert_types=["Tornado Warning"],
+        poll_interval_seconds=120,
+        repeat_interval_minutes=30,
+        meshcore_channel="#alerts",
+    )
+
+    defaults = build_setup_defaults(config)
+
+    assert defaults["serial_port"] == "/dev/ttyUSB1"
+    assert defaults["latitude"] == 41.6
+    assert defaults["longitude"] == -93.6
+    assert defaults["state"] == "IA"
+    assert defaults["county_inputs"] == ["Polk"]
+    assert defaults["alert_type_choices"] == ["Tornado Warning"]
+    assert defaults["meshcore_channel"] == "#alerts"
+    assert defaults["poll_interval"] == 120
+    assert defaults["repeat_interval"] == 30

@@ -11,6 +11,17 @@ from meshcore_weather.config import GatewayConfig
 
 
 @dataclass
+class ForecastPeriod:
+    """A normalized forecast period."""
+
+    name: str
+    short_forecast: str
+    detailed_forecast: str
+    temperature: int | None = None
+    temperature_unit: str | None = None
+
+
+@dataclass
 class Observation:
     """A normalized current weather observation."""
 
@@ -92,6 +103,59 @@ def fetch_weather_observation(location: str | None = None) -> Observation | None
         )
     except Exception:
         return None
+
+
+def fetch_forecast(location: str | None = None) -> list[ForecastPeriod]:
+    """Fetch the next forecast periods for the provided coordinates from the NWS API."""
+    if not location:
+        return []
+
+    try:
+        response = requests.get(
+            "https://api.weather.gov/points/" + location,
+            timeout=10,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        forecast_url = payload.get("properties", {}).get("forecast")
+        if not forecast_url:
+            return []
+
+        forecast_response = requests.get(forecast_url, timeout=10)
+        forecast_response.raise_for_status()
+        forecast_payload = forecast_response.json()
+        periods = forecast_payload.get("properties", {}).get("periods", [])
+        return [
+            ForecastPeriod(
+                name=str(period.get("name", "")),
+                short_forecast=str(period.get("shortForecast", "")),
+                detailed_forecast=str(period.get("detailedForecast", "")),
+                temperature=int(period.get("temperature")) if period.get("temperature") is not None else None,
+                temperature_unit=str(period.get("temperatureUnit", "")),
+            )
+            for period in periods
+        ]
+    except Exception:
+        return []
+
+
+def build_forecast_message(payload: dict[str, Any]) -> str:
+    """Build a compact message with the first forecast period for the day."""
+    periods = payload.get("properties", {}).get("periods", [])
+    if not periods:
+        return "Forecast unavailable"
+
+    period = periods[0]
+    temperature = period.get("temperature")
+    temperature_unit = period.get("temperatureUnit", "F")
+    name = period.get("name", "Today")
+    short_forecast = period.get("shortForecast", "")
+    detailed_forecast = period.get("detailedForecast", "")
+
+    if temperature is None:
+        return f"{name}: {short_forecast} - {detailed_forecast}"
+
+    return f"{name}: {short_forecast} - {temperature}{temperature_unit}. {detailed_forecast}"
 
 
 def build_alerts(payload: dict[str, Any]) -> list[Alert]:

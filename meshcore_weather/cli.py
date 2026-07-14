@@ -12,7 +12,7 @@ from rich.console import Console
 from meshcore_weather.broadcast import format_alert_message, send_message
 from meshcore_weather.config import GatewayConfig, load_config, save_config
 from meshcore_weather.dedupe import AlertTracker
-from meshcore_weather.nws import Alert, build_alerts, fetch_active_alerts, fetch_weather_observation, filter_alerts
+from meshcore_weather.nws import Alert, build_alerts, build_forecast_message, fetch_active_alerts, fetch_forecast, filter_alerts
 from meshcore_weather.setup_wizard import run_setup
 from meshcore_weather.version import __version__
 
@@ -97,29 +97,20 @@ def run_test_mode(config_path: Path | str | None = None) -> bool:
         return sent
 
     location = ""
-    if config.tracked_locations:
-        location = str(config.tracked_locations[0].get("county", "")).strip()
-    if config.state and location:
-        location = f"{config.state.lower()}/{location.lower()}"
-    observation = fetch_weather_observation(location)
-
-    if observation is None:
-        console.print("[yellow]No matching alerts or observation data were found from the NWS feed.[/yellow]")
+    if config.latitude is not None and config.longitude is not None:
+        location = f"{config.latitude},{config.longitude}"
+    forecast = fetch_forecast(location)
+    if not forecast:
+        console.print("[yellow]No forecast data was found from the NWS feed.[/yellow]")
         return False
 
-    parts = []
-    if observation.temperature_f is not None:
-        parts.append(f"Temp: {observation.temperature_f:.1f}F")
-    if observation.humidity_percent is not None:
-        parts.append(f"Humidity: {observation.humidity_percent:.0f}%")
-
-    message = "Current weather: " + ", ".join(parts) if parts else "Current weather: unavailable"
-    console.print(f"[cyan]Sending current weather to {config.meshcore_channel}[/cyan]")
+    message = build_forecast_message({"properties": {"periods": [period.__dict__ for period in forecast]}})
+    console.print(f"[cyan]Sending forecast to {config.meshcore_channel}[/cyan]")
     sent = send_message(config.serial_port, message, channel=config.meshcore_channel)
     if sent:
-        console.print("[green]Current weather sent successfully.[/green]")
+        console.print("[green]Forecast sent successfully.[/green]")
     else:
-        console.print("[yellow]Current weather could not be sent.[/yellow]")
+        console.print("[yellow]Forecast could not be sent.[/yellow]")
         console.print("[yellow]The MeshCore device may be disconnected, unavailable, or not reachable on the configured serial port.[/yellow]")
 
     return sent
