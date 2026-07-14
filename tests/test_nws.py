@@ -51,8 +51,6 @@ def test_filter_alerts_matches_configured_county_and_alert_type() -> None:
         serial_port="/dev/ttyUSB0",
         latitude=40.7,
         longitude=-74.0,
-        state="NE",
-        tracked_locations=[{"county": "York", "nws_zone": "NEC185"}],
         alert_types=["Tornado Warning"],
         poll_interval_seconds=60,
         repeat_interval_minutes=15,

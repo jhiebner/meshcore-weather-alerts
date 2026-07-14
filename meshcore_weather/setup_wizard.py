@@ -10,7 +10,6 @@ from rich.prompt import Confirm, IntPrompt, Prompt
 from meshcore_weather.config import GatewayConfig, save_config
 from meshcore_weather.constants import DEFAULT_ALERT_TYPES
 from meshcore_weather.validators import (
-    normalize_state,
     parse_alert_types,
     validate_latitude,
     validate_longitude,
@@ -28,16 +27,7 @@ def build_configuration_summary(config: GatewayConfig) -> str:
         f"- MeshCore serial port: {config.serial_port or 'Not set'}",
         f"- Latitude: {config.latitude if config.latitude is not None else 'Not set'}",
         f"- Longitude: {config.longitude if config.longitude is not None else 'Not set'}",
-        f"- State: {config.state or 'Not set'}",
-        "- Counties:",
     ]
-
-    if config.tracked_locations:
-        for location in config.tracked_locations:
-            county = location.get("county", "")
-            lines.append(f"  - {county}")
-    else:
-        lines.append("  - None")
 
     lines.extend(
         [
@@ -68,8 +58,6 @@ def build_setup_defaults(existing_config: GatewayConfig | None = None) -> dict[s
         "serial_port": config.serial_port or "/dev/ttyUSB0",
         "latitude": config.latitude,
         "longitude": config.longitude,
-        "state": config.state,
-        "county_inputs": [location.get("county", "") for location in config.tracked_locations if location.get("county")],
         "alert_type_choices": list(config.alert_types),
         "meshcore_channel": config.meshcore_channel or "#weather-alert",
         "poll_interval": config.poll_interval_seconds,
@@ -84,7 +72,6 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
     if destination.exists():
         existing_config = GatewayConfig(
             serial_port="",
-            state="",
             tracked_locations=[],
             alert_types=[],
             poll_interval_seconds=60,
@@ -125,22 +112,6 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
             default=str(defaults["longitude"]) if defaults["longitude"] is not None else "",
         )
     )
-
-    state = normalize_state(
-        Prompt.ask("State code (for example NE)", default=str(defaults["state"] or ""))
-    )
-
-    county_inputs: list[str] = []
-    existing_counties = list(defaults["county_inputs"])  # type: ignore[arg-type]
-    for index in range(1, 4):
-        county_default = existing_counties[index - 1] if index - 1 < len(existing_counties) else ""
-        value = Prompt.ask(
-            f"County {index} (leave blank to skip)",
-            default=county_default,
-            show_default=False,
-        ).strip()
-        if value:
-            county_inputs.append(value)
 
     alert_type_choices = []
     existing_alert_types = list(defaults["alert_type_choices"])  # type: ignore[arg-type]
@@ -188,8 +159,7 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
         serial_port=serial_port,
         latitude=latitude_value,
         longitude=longitude_value,
-        state=state,
-        tracked_locations=[{"county": county, "nws_zone": ""} for county in county_inputs],
+        tracked_locations=[],
         alert_types=alert_type_choices,
         poll_interval_seconds=poll_interval,
         repeat_interval_minutes=repeat_interval,

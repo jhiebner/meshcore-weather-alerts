@@ -193,22 +193,9 @@ def build_alerts(payload: dict[str, Any]) -> list[Alert]:
 
 
 def filter_alerts(alerts: list[Alert], config: GatewayConfig) -> list[Alert]:
-    """Filter alerts to the configured state, tracked locations, and alert types."""
-    configured_zones = {
-        str(location.get("nws_zone", "")).strip().upper()
-        for location in config.tracked_locations
-        if str(location.get("nws_zone", "")).strip()
-    }
-
+    """Filter alerts to the configured alert types."""
     filtered: list[Alert] = []
     for alert in alerts:
-        if config.state and alert.zones:
-            matching_zone = any(zone.upper() == config.state for zone in alert.zones)
-            if not matching_zone and not configured_zones:
-                continue
-            if configured_zones and not set(alert.zones).intersection(configured_zones):
-                continue
-
         if alert.event not in config.alert_types:
             continue
 
