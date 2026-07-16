@@ -15,7 +15,7 @@ A Python application that monitors the National Weather Service (NWS) for severe
 
 ## Project Status
 
-🚧 Version: 0.1.0-alpha1
+🚧 Version: 0.1.0-alpha3
 
 This project is currently under active development.
 
