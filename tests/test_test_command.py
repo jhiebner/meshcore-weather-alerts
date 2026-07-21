@@ -1,4 +1,4 @@
-from meshcore_weather.cli import run_test_mode
+from meshcore_weather.gateway import run_test_mode
 from meshcore_weather.nws import Alert, ForecastPeriod
 
 
@@ -24,11 +24,11 @@ def test_run_test_mode_fetches_alerts_and_broadcasts_one(tmp_path, monkeypatch) 
     )
 
     monkeypatch.setattr(
-        "meshcore_weather.cli.fetch_active_alerts",
+        "meshcore_weather.gateway.fetch_active_alerts",
         lambda: {"features": [{"id": "1", "properties": {"event": "Tornado Warning"}}]},
     )
     monkeypatch.setattr(
-        "meshcore_weather.cli.build_alerts",
+        "meshcore_weather.gateway.build_alerts",
         lambda payload: [
             Alert(
                 id="1",
@@ -45,7 +45,7 @@ def test_run_test_mode_fetches_alerts_and_broadcasts_one(tmp_path, monkeypatch) 
             )
         ],
     )
-    monkeypatch.setattr("meshcore_weather.cli.fetch_location_zones", lambda location: {"NEC185"})
+    monkeypatch.setattr("meshcore_weather.gateway.fetch_location_zones", lambda location: {"NEC185"})
 
     captured: dict[str, object] = {}
 
@@ -55,7 +55,7 @@ def test_run_test_mode_fetches_alerts_and_broadcasts_one(tmp_path, monkeypatch) 
         captured["channel"] = channel
         return True
 
-    monkeypatch.setattr("meshcore_weather.cli.send_message", fake_send_message)
+    monkeypatch.setattr("meshcore_weather.gateway.send_message", fake_send_message)
 
     result = run_test_mode(config_path)
 
@@ -74,11 +74,11 @@ def test_run_test_mode_uses_forecast_when_alert_is_out_of_area(tmp_path, monkeyp
     )
 
     monkeypatch.setattr(
-        "meshcore_weather.cli.fetch_active_alerts",
+        "meshcore_weather.gateway.fetch_active_alerts",
         lambda: {"features": [{"id": "1", "properties": {"event": "Tornado Warning"}}]},
     )
     monkeypatch.setattr(
-        "meshcore_weather.cli.build_alerts",
+        "meshcore_weather.gateway.build_alerts",
         lambda payload: [
             Alert(
                 id="1",
@@ -95,9 +95,9 @@ def test_run_test_mode_uses_forecast_when_alert_is_out_of_area(tmp_path, monkeyp
             )
         ],
     )
-    monkeypatch.setattr("meshcore_weather.cli.fetch_location_zones", lambda location: {"NEC185"})
+    monkeypatch.setattr("meshcore_weather.gateway.fetch_location_zones", lambda location: {"NEC185"})
     monkeypatch.setattr(
-        "meshcore_weather.cli.fetch_forecast",
+        "meshcore_weather.gateway.fetch_forecast",
         lambda location: [
             ForecastPeriod(
                 name="Today",
@@ -117,7 +117,7 @@ def test_run_test_mode_uses_forecast_when_alert_is_out_of_area(tmp_path, monkeyp
         captured["channel"] = channel
         return True
 
-    monkeypatch.setattr("meshcore_weather.cli.send_message", fake_send_message)
+    monkeypatch.setattr("meshcore_weather.gateway.send_message", fake_send_message)
 
     result = run_test_mode(config_path)
 
