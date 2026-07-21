@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "meshcore-weather"
-version = "0.1.0-beta1"
+version = "0.1.0-beta2"
 description = "National Weather Service gateway for MeshCore networks"
 readme = "README.md"
 requires-python = ">=3.10"
