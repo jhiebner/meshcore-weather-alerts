@@ -32,13 +32,40 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 python -m pip install --upgrade pip
+python -m pip install meshcore-cli
 python -m pip install -r requirements.txt
 ```
+
+Before running the weather gateway setup, open `meshcore-cli` and create the MeshCore channel you want the weather alerts to use.
+
+```bash
+meshcli -s /dev/ttyACM0
+```
+
+After you get into the CLI, add the channel you want to use:
+
+```bash
+add_channel {name_of_your_channel}
+```
+
+For example:
+
+```bash
+add_channel #weather-alerts
+```
+
+Then verify the channel was created:
+
+```bash
+get_channels
+```
+
+Your new channel should appear in the list and is now ready to be used by MeshCore Weather Alerts.
 
 You can start the CLI directly from the repository root with:
 
 ```bash
-python -m meshcore_weather quick-start
+meshcore-weather quick-start
 ```
 
 This runs the app from source and does not require installing it with pip.
@@ -48,7 +75,7 @@ If you are new to this project, the easiest path is:
 ### 1. Run the setup and start the service
 
 ```bash
-python -m meshcore_weather quick-start
+meshcore-weather quick-start
 ```
 
 This command will:
@@ -56,6 +83,9 @@ This command will:
 - install the systemd service unit
 - enable the service so it starts at boot
 - start the service right away
+
+The setup wizard will ask you to choose from the MeshCore channels you already created in `meshcore-cli`.
+If the channel does not exist yet, create it first in `meshcore-cli` before you continue.
 
 The setup wizard will ask for:
 - the MeshCore serial port
@@ -67,13 +97,13 @@ The setup wizard will ask for:
 If you want to change those settings later, run:
 
 ```bash
-python -m meshcore_weather --setup
+meshcore-weather --setup
 ```
 
 ### 2. Validate the configuration
 
 ```bash
-python -m meshcore_weather validate
+meshcore-weather validate
 ```
 
 ### 3. Choose how to run it
@@ -81,70 +111,70 @@ python -m meshcore_weather validate
 For a one-time test run:
 
 ```bash
-python -m meshcore_weather test
+meshcore-weather test
 ```
 
 For a foreground run:
 
 ```bash
-python -m meshcore_weather run
+meshcore-weather run
 ```
 
 For a background service that keeps running after you close the terminal:
 
 ```bash
-python -m meshcore_weather quick-start
+meshcore-weather quick-start
 ```
 
 ## Command reference
 
 ### Setup and configuration
 
-- `python -m meshcore_weather --setup`
+- `meshcore-weather --setup`
   - Launches the interactive setup wizard for changing configuration values later.
 
-- `python -m meshcore_weather validate`
+- `meshcore-weather validate`
   - Checks that your configuration file is complete and valid.
 
 ### Running the gateway
 
-- `python -m meshcore_weather run`
+- `meshcore-weather run`
   - Starts the gateway in the foreground.
 
-- `python -m meshcore_weather service`
+- `meshcore-weather service`
   - Starts the gateway in the background as a detached process.
 
-- `python -m meshcore_weather stop`
+- `meshcore-weather stop`
   - Stops the background gateway process started by `service`.
 
 ### Systemd service management
 
-- `python -m meshcore_weather install`
+- `meshcore-weather install`
   - Installs the systemd service unit file.
 
-- `python -m meshcore_weather enable`
+- `meshcore-weather enable`
   - Enables the service so it starts at boot.
 
-- `python -m meshcore_weather start`
+- `meshcore-weather start`
   - Starts the systemd service now.
 
-- `python -m meshcore_weather stop`
+- `meshcore-weather stop`
   - Stops the running systemd service.
 
-- `python -m meshcore_weather status`
+- `meshcore-weather status`
   - Shows the current status of the systemd service.
 
-- `python -m meshcore_weather quick-start`
+- `meshcore-weather quick-start`
   - Runs setup if needed, then installs, enables, and starts the service.
 
 ### Testing
 
-- `python -m meshcore_weather test`
+- `meshcore-weather test`
   - Sends a test alert or forecast message using the current configuration.
 
 ### Version
 
-- `python -m meshcore_weather --version`
+- `meshcore-weather --version`
   - Prints the installed version number.
 
 ## Recommended beginner workflow
@@ -152,8 +182,8 @@ python -m meshcore_weather quick-start
 If you are setting this up for the first time, this is the easiest path:
 
 ```bash
-python -m meshcore_weather quick-start
-python -m meshcore_weather validate
+meshcore-weather quick-start
+meshcore-weather validate
 ```
 
 That sequence will:

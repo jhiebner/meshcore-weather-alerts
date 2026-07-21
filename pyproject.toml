@@ -1,5 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "meshcore-weather"
 version = "0.1.0-beta1"
 description = "National Weather Service gateway for MeshCore networks"
+readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "MIT" }
+
+authors = [
+	{ name = "Jordan Hiebner" }
+]
+
+keywords = [
+	"meshcore",
+	"lora",
+	"weather",
+	"noaa",
+	"nws",
+	"mesh"
+]
+
+classifiers = [
+	"Development Status :: 4 - Beta",
+	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3.10",
+	"Operating System :: POSIX :: Linux",
+	"License :: OSI Approved :: MIT License"
+]
+
+dependencies = [
+	"rich>=13.7",
+	"requests>=2.31",
+	"PyYAML>=6.0",
+	"pyserial>=3.5",
+	"meshcore>=2.3.1"
+]
+
+[project.scripts]
+meshcore-weather = "meshcore_weather.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["meshcore_weather*"]
+
+[tool.setuptools.package-data]
+meshcore_weather = ["systemd/*.service"]
