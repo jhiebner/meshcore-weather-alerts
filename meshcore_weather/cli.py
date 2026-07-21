@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
+import signal
+import subprocess
+import sys
 import threading
 from pathlib import Path
 
@@ -12,6 +17,8 @@ from meshcore_weather.config import load_config
 from meshcore_weather.gateway import run_gateway, run_test_mode
 from meshcore_weather.setup_wizard import run_setup
 from meshcore_weather.version import __version__
+
+PID_FILE = Path("/tmp/meshcore-weather.pid")
 
 console = Console()
 
@@ -45,7 +52,7 @@ def main() -> None:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=["run", "test", "validate"],
+        choices=["run", "service", "stop", "install", "enable", "start", "stop", "status", "quick-start", "test", "validate"],
         help="Command to execute.",
     )
 
@@ -77,6 +84,90 @@ def main() -> None:
             run_gateway(config_path)
         except KeyboardInterrupt:
             console.print("[yellow]Gateway interrupted.[/yellow]")
+        return
+
+    if args.command == "service":
+        try:
+            if PID_FILE.exists():
+                pid = int(PID_FILE.read_text(encoding="utf-8").strip())
+                if os.path.exists(f"/proc/{pid}"):
+                    console.print("[yellow]Gateway is already running in the background.[/yellow]")
+                    return
+                PID_FILE.unlink(missing_ok=True)
+
+            command = [sys.executable, "-m", "meshcore_weather.main", "run", "--config", str(config_path)]
+            with open("/tmp/meshcore-weather.log", "a", encoding="utf-8") as handle:
+                process = subprocess.Popen(command, stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
+            PID_FILE.write_text(str(process.pid), encoding="utf-8")
+            console.print(f"[green]Gateway started in the background with PID {process.pid}[/green]")
+        except Exception as exc:
+            console.print(f"[red]Unable to start gateway service: {exc}[/red]")
+        return
+
+    if args.command == "install":
+        try:
+            service_path = Path("/etc/systemd/system/meshcore-weather.service")
+            service_file = Path(__file__).resolve().parent.parent / "systemd" / "meshcore-weather.service"
+            if not service_file.exists():
+                console.print("[red]Service unit file not found.[/red]")
+                return
+            service_path.write_text(service_file.read_text(encoding="utf-8"), encoding="utf-8")
+            console.print(f"[green]Installed service unit to {service_path}[/green]")
+        except Exception as exc:
+            console.print(f"[red]Unable to install service: {exc}[/red]")
+        return
+
+    if args.command == "enable":
+        try:
+            subprocess.run(["systemctl", "enable", "meshcore-weather"], check=True)
+            console.print("[green]Enabled meshcore-weather service.[/green]")
+        except Exception as exc:
+            console.print(f"[red]Unable to enable service: {exc}[/red]")
+        return
+
+    if args.command == "start":
+        try:
+            subprocess.run(["systemctl", "start", "meshcore-weather"], check=True)
+            console.print("[green]Started meshcore-weather service.[/green]")
+        except Exception as exc:
+            console.print(f"[red]Unable to start service: {exc}[/red]")
+        return
+
+    if args.command == "stop":
+        try:
+            subprocess.run(["systemctl", "stop", "meshcore-weather"], check=True)
+            console.print("[green]Stopped meshcore-weather service.[/green]")
+        except Exception as exc:
+            console.print(f"[red]Unable to stop service: {exc}[/red]")
+        return
+
+    if args.command == "status":
+        try:
+            subprocess.run(["systemctl", "status", "meshcore-weather"], check=True)
+        except subprocess.CalledProcessError as exc:
+            raise SystemExit(exc.returncode) from exc
+        except Exception as exc:
+            console.print(f"[red]Unable to show service status: {exc}[/red]")
+        return
+
+    if args.command == "quick-start":
+        try:
+            should_run_setup = not config_path.exists()
+            if not should_run_setup:
+                config = load_config(config_path)
+                should_run_setup = not config.serial_port.strip() or config.latitude is None or config.longitude is None
+
+            if should_run_setup:
+                run_setup(config_path)
+
+            for subcommand in ["install", "enable", "start"]:
+                if subcommand == "install":
+                    subprocess.run([sys.executable, "-m", "meshcore_weather.cli", "install", "--config", str(config_path)], check=True)
+                else:
+                    subprocess.run([sys.executable, "-m", "meshcore_weather.cli", subcommand, "--config", str(config_path)], check=True)
+            console.print("[green]Quick start completed.[/green]")
+        except Exception as exc:
+            console.print(f"[red]Quick start failed: {exc}[/red]")
         return
 
     if args.command == "test":
