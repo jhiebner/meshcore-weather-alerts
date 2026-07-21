@@ -46,6 +46,13 @@ def get_systemd_service_status() -> str:
     return output or error_output or "No status output available."
 
 
+def reload_systemd_daemon() -> None:
+    command = ["systemctl", "daemon-reload"]
+    if os.geteuid() != 0:
+        command = ["sudo", *command]
+    subprocess.run(command, check=True)
+
+
 def get_service_unit_path() -> Path:
     """Return the packaged systemd service unit path."""
     package_root = Path(__file__).resolve().parent
@@ -133,6 +140,7 @@ def main() -> None:
                 service_path.write_text(service_file.read_text(encoding="utf-8"), encoding="utf-8")
             else:
                 subprocess.run(["sudo", "install", "-Dm644", str(service_file), str(service_path)], check=True)
+            reload_systemd_daemon()
             console.print(f"[green]Installed service unit to {service_path}[/green]")
         except Exception as exc:
             console.print(f"[red]Unable to install service: {exc}[/red]")
