@@ -1,0 +1,17 @@
+[Unit]
+Description=MeshCore Weather Gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/meshcore-weather
+ExecStart=/usr/bin/env meshcore-weather run --config /opt/meshcore-weather/config.yaml
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:/var/log/meshcore-weather.log
+StandardError=append:/var/log/meshcore-weather.log
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
