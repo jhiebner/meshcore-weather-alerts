@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import threading
@@ -16,6 +17,33 @@ from meshcore_weather.setup_wizard import run_setup
 from meshcore_weather.version import __version__
 
 console = Console()
+
+
+def run_systemctl(action: str) -> None:
+    command = ["systemctl", action, "meshcore-weather"]
+    if os.geteuid() != 0:
+        command = ["sudo", *command]
+    subprocess.run(command, check=True)
+
+
+def is_systemd_service_active() -> bool:
+    command = ["systemctl", "is-active", "--quiet", "meshcore-weather"]
+    if os.geteuid() != 0:
+        command = ["sudo", *command]
+    return subprocess.run(command, check=False).returncode == 0
+
+
+def get_systemd_service_status() -> str:
+    command = ["systemctl", "status", "meshcore-weather"]
+    if os.geteuid() != 0:
+        command = ["sudo", *command]
+
+    result = subprocess.run(command, check=False, capture_output=True, text=True)
+    output = (result.stdout or "").strip()
+    error_output = (result.stderr or "").strip()
+    if output and error_output:
+        return f"{output}\n{error_output}"
+    return output or error_output or "No status output available."
 
 
 def get_service_unit_path() -> Path:
@@ -101,7 +129,10 @@ def main() -> None:
             if not service_file.exists():
                 console.print("[red]Service unit file not found.[/red]")
                 return
-            service_path.write_text(service_file.read_text(encoding="utf-8"), encoding="utf-8")
+            if os.geteuid() == 0:
+                service_path.write_text(service_file.read_text(encoding="utf-8"), encoding="utf-8")
+            else:
+                subprocess.run(["sudo", "install", "-Dm644", str(service_file), str(service_path)], check=True)
             console.print(f"[green]Installed service unit to {service_path}[/green]")
         except Exception as exc:
             console.print(f"[red]Unable to install service: {exc}[/red]")
@@ -109,7 +140,7 @@ def main() -> None:
 
     if args.command == "enable":
         try:
-            subprocess.run(["systemctl", "enable", "meshcore-weather"], check=True)
+            run_systemctl("enable")
             console.print("[green]Enabled meshcore-weather service.[/green]")
         except Exception as exc:
             console.print(f"[red]Unable to enable service: {exc}[/red]")
@@ -117,7 +148,7 @@ def main() -> None:
 
     if args.command == "start":
         try:
-            subprocess.run(["systemctl", "start", "meshcore-weather"], check=True)
+            run_systemctl("start")
             console.print("[green]Started meshcore-weather service.[/green]")
         except Exception as exc:
             console.print(f"[red]Unable to start service: {exc}[/red]")
@@ -125,7 +156,7 @@ def main() -> None:
 
     if args.command == "stop":
         try:
-            subprocess.run(["systemctl", "stop", "meshcore-weather"], check=True)
+            run_systemctl("stop")
             console.print("[green]Stopped meshcore-weather service.[/green]")
         except Exception as exc:
             console.print(f"[red]Unable to stop service: {exc}[/red]")
@@ -133,7 +164,7 @@ def main() -> None:
 
     if args.command == "status":
         try:
-            subprocess.run(["systemctl", "status", "meshcore-weather"], check=True)
+            run_systemctl("status")
         except subprocess.CalledProcessError as exc:
             raise SystemExit(exc.returncode) from exc
         except Exception as exc:
@@ -155,6 +186,13 @@ def main() -> None:
                     subprocess.run([sys.executable, "-m", "meshcore_weather.cli", "install", "--config", str(config_path)], check=True)
                 else:
                     subprocess.run([sys.executable, "-m", "meshcore_weather.cli", subcommand, "--config", str(config_path)], check=True)
+
+            if not is_systemd_service_active():
+                raise RuntimeError(
+                    "meshcore-weather.service did not become active after start\n"
+                    f"{get_systemd_service_status()}"
+                )
+
             console.print("[green]Quick start completed.[/green]")
         except Exception as exc:
             console.print(f"[red]Quick start failed: {exc}[/red]")
