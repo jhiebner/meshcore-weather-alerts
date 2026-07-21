@@ -23,6 +23,19 @@ PID_FILE = Path("/tmp/meshcore-weather.pid")
 console = Console()
 
 
+def get_service_unit_path() -> Path:
+    """Return the packaged systemd service unit path."""
+    package_root = Path(__file__).resolve().parent
+    candidate_paths = [
+        package_root / "systemd" / "meshcore-weather.service",
+        package_root.parent / "systemd" / "meshcore-weather.service",
+    ]
+    for candidate in candidate_paths:
+        if candidate.exists():
+            return candidate
+    return candidate_paths[0]
+
+
 def main() -> None:
     """Main CLI entry point."""
 
@@ -107,7 +120,7 @@ def main() -> None:
     if args.command == "install":
         try:
             service_path = Path("/etc/systemd/system/meshcore-weather.service")
-            service_file = Path(__file__).resolve().parent.parent / "systemd" / "meshcore-weather.service"
+            service_file = get_service_unit_path()
             if not service_file.exists():
                 console.print("[red]Service unit file not found.[/red]")
                 return
