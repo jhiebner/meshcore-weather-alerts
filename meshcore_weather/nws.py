@@ -168,6 +168,22 @@ def fetch_location_zones(location: str | None = None) -> set[str]:
         return set()
 
 
+def _period_value(period: Any, *keys: str, default: Any = None) -> Any:
+    """Read a value from a forecast period using one of several supported field names."""
+    if isinstance(period, dict):
+        for key in keys:
+            if key in period:
+                return period[key]
+        return default
+
+    for key in keys:
+        value = getattr(period, key, None)
+        if value is not None:
+            return value
+
+    return default
+
+
 def build_forecast_message(payload: dict[str, Any]) -> str:
     """Build a compact message with the first forecast period for the day."""
     periods = payload.get("properties", {}).get("periods", [])
@@ -175,11 +191,11 @@ def build_forecast_message(payload: dict[str, Any]) -> str:
         return "Forecast unavailable"
 
     period = periods[0]
-    temperature = period.get("temperature")
-    temperature_unit = period.get("temperatureUnit", "F")
-    name = period.get("name", "Today")
-    short_forecast = period.get("shortForecast", "")
-    detailed_forecast = period.get("detailedForecast", "")
+    temperature = _period_value(period, "temperature")
+    temperature_unit = _period_value(period, "temperatureUnit", "temperature_unit", default="F")
+    name = _period_value(period, "name", default="Today")
+    short_forecast = _period_value(period, "shortForecast", "short_forecast", default="")
+    detailed_forecast = _period_value(period, "detailedForecast", "detailed_forecast", default="")
 
     if temperature is None:
         return f"{name}: {short_forecast} - {detailed_forecast}"

@@ -1,5 +1,5 @@
 from meshcore_weather.config import GatewayConfig
-from meshcore_weather.nws import Alert, build_alerts, build_forecast_message, filter_alerts
+from meshcore_weather.nws import Alert, ForecastPeriod, build_alerts, build_forecast_message, filter_alerts
 
 
 SAMPLE_ALERTS = {
@@ -84,3 +84,19 @@ def test_build_forecast_message_formats_today_s_forecast() -> None:
     assert "Today" in message
     assert "Partly Sunny" in message
     assert "82" in message
+
+
+def test_build_forecast_message_supports_snake_case_period_fields() -> None:
+    period = ForecastPeriod(
+        name="This Afternoon",
+        short_forecast="Mostly Sunny",
+        detailed_forecast="Mostly sunny, with a high near 86.",
+        temperature=86,
+        temperature_unit="F",
+    )
+
+    message = build_forecast_message({"properties": {"periods": [period]}})
+
+    assert "This Afternoon" in message
+    assert "Mostly Sunny" in message
+    assert "86F" in message
