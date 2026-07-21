@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Callable
 
@@ -10,6 +11,7 @@ from rich.prompt import Confirm, IntPrompt, Prompt
 
 from meshcore_weather.config import GatewayConfig, save_config
 from meshcore_weather.constants import SUPPORTED_ALERT_TYPES
+from meshcore_weather.meshcore_client import MeshCoreClient
 from meshcore_weather.validators import (
     parse_alert_types,
     validate_latitude,
@@ -99,6 +101,12 @@ def parse_coordinate_pair(raw_value: str) -> tuple[float, float]:
     return latitude, longitude
 
 
+def validate_meshcore_port(serial_port: str) -> bool:
+    """Return True when a MeshCore device can be connected on the provided serial port."""
+    client = MeshCoreClient(serial_port)
+    return asyncio.run(client.connect())
+
+
 def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
     """Run the interactive setup wizard."""
     destination = Path(config_path) if config_path is not None else Path("config.yaml")
@@ -128,11 +136,23 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
     console.print("You can press Enter to accept the suggested default values.")
     console.print()
 
-    serial_port = Prompt.ask(
-        "MeshCore serial port",
-        default=str(defaults["serial_port"]),
-        show_default=True,
-    ).strip()
+    serial_port = ""
+    while not serial_port:
+        candidate = Prompt.ask(
+            "MeshCore serial port",
+            default=str(defaults["serial_port"]),
+            show_default=True,
+        ).strip()
+        if not candidate:
+            continue
+
+        if validate_meshcore_port(candidate):
+            serial_port = candidate
+            break
+
+        console.print(
+            "[red]Could not establish connection to MeshCore node on that port, please make sure the port address is entered correctly or that it is not on another port.[/red]"
+        )
 
     default_coordinates = (
         f"{defaults['latitude']}, {defaults['longitude']}"

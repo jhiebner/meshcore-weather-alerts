@@ -6,6 +6,7 @@ from meshcore_weather.setup_wizard import (
     get_alert_type_choices,
     parse_coordinate_pair,
     prompt_with_retries,
+    validate_meshcore_port,
 )
 
 
@@ -71,3 +72,19 @@ def test_prompt_with_retries_retries_until_value_is_valid() -> None:
 
 def test_parse_coordinate_pair_supports_lat_long_input() -> None:
     assert parse_coordinate_pair("40.7, -74.0") == (40.7, -74.0)
+
+
+def test_validate_meshcore_port_uses_meshcore_client(monkeypatch) -> None:
+    calls = []
+
+    class DummyClient:
+        def __init__(self, serial_port):
+            calls.append(serial_port)
+
+        async def connect(self):
+            return True
+
+    monkeypatch.setattr("meshcore_weather.setup_wizard.MeshCoreClient", DummyClient)
+
+    assert validate_meshcore_port("/dev/ttyUSB0") is True
+    assert calls == ["/dev/ttyUSB0"]
