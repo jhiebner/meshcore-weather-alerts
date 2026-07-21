@@ -132,13 +132,21 @@ def main() -> None:
     if args.command == "install":
         try:
             service_path = Path("/etc/systemd/system/meshcore-weather.service")
+            runtime_dir = Path("/opt/meshcore-weather")
+            runtime_config_path = runtime_dir / "config.yaml"
             service_file = get_service_unit_path()
             if not service_file.exists():
                 console.print("[red]Service unit file not found.[/red]")
                 return
             if os.geteuid() == 0:
+                runtime_dir.mkdir(parents=True, exist_ok=True)
+                if config_path.exists():
+                    runtime_config_path.write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
                 service_path.write_text(service_file.read_text(encoding="utf-8"), encoding="utf-8")
             else:
+                subprocess.run(["sudo", "install", "-d", "/opt/meshcore-weather"], check=True)
+                if config_path.exists():
+                    subprocess.run(["sudo", "install", "-Dm644", str(config_path), str(runtime_config_path)], check=True)
                 subprocess.run(["sudo", "install", "-Dm644", str(service_file), str(service_path)], check=True)
             reload_systemd_daemon()
             console.print(f"[green]Installed service unit to {service_path}[/green]")
