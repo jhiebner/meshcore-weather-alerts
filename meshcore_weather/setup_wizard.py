@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.prompt import Confirm, IntPrompt, Prompt
 
 from meshcore_weather.config import GatewayConfig, save_config
-from meshcore_weather.constants import DEFAULT_ALERT_TYPES
+from meshcore_weather.constants import SUPPORTED_ALERT_TYPES
 from meshcore_weather.validators import (
     parse_alert_types,
     validate_latitude,
@@ -65,6 +65,11 @@ def build_setup_defaults(existing_config: GatewayConfig | None = None) -> dict[s
     }
 
 
+def get_alert_type_choices() -> list[str]:
+    """Return the full list of alert types shown by the setup wizard."""
+    return list(SUPPORTED_ALERT_TYPES)
+
+
 def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
     """Run the interactive setup wizard."""
     destination = Path(config_path) if config_path is not None else Path("config.yaml")
@@ -116,15 +121,16 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
     alert_type_choices = []
     existing_alert_types = list(defaults["alert_type_choices"])  # type: ignore[arg-type]
     while not alert_type_choices:
+        alert_type_options = get_alert_type_choices()
         console.print("Select alert types to broadcast:")
-        for index, alert_type in enumerate(DEFAULT_ALERT_TYPES, start=1):
+        for index, alert_type in enumerate(alert_type_options, start=1):
             console.print(f"  {index}. {alert_type}")
         default_alerts = ",".join(
             str(index)
-            for index, alert_type in enumerate(DEFAULT_ALERT_TYPES, start=1)
+            for index, alert_type in enumerate(alert_type_options, start=1)
             if alert_type in existing_alert_types
         ) or ",".join(
-            str(index) for index, _ in enumerate(DEFAULT_ALERT_TYPES, start=1)
+            str(index) for index, _ in enumerate(alert_type_options, start=1)
         )
         raw = Prompt.ask(
             "Enter numbers separated by commas (for example 1,2,3)",

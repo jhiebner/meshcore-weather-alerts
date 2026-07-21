@@ -1,5 +1,10 @@
 from meshcore_weather.config import GatewayConfig
-from meshcore_weather.setup_wizard import build_configuration_summary, build_setup_defaults
+from meshcore_weather.constants import SUPPORTED_ALERT_TYPES
+from meshcore_weather.setup_wizard import (
+    build_configuration_summary,
+    build_setup_defaults,
+    get_alert_type_choices,
+)
 
 
 def test_configuration_summary_includes_key_values() -> None:
@@ -40,3 +45,7 @@ def test_build_setup_defaults_uses_existing_config_values() -> None:
     assert defaults["meshcore_channel"] == "#alerts"
     assert defaults["poll_interval"] == 120
     assert defaults["repeat_interval"] == 30
+
+
+def test_alert_type_choices_use_full_supported_list() -> None:
+    assert get_alert_type_choices() == SUPPORTED_ALERT_TYPES
