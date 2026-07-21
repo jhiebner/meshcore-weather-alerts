@@ -8,7 +8,7 @@ The gateway:
 - checks the NWS for active alerts
 - filters alerts by your location and selected alert types
 - sends the messages over your MeshCore device
-- can run in the foreground or as a background service
+- can run in the foreground or as a systemd-managed service
 
 ## Requirements
 
@@ -36,7 +36,7 @@ python -m pip install meshcore-cli
 python -m pip install -r requirements.txt
 ```
 
-Before running the weather gateway setup, open `meshcore-cli` and create the MeshCore channel you want the weather alerts to use.
+Before running the weather gateway setup, open `meshcore-cli` and create the MeshCore channel you want the weather alerts to use. "/dev/ttyACM0" is the device port path, you will need to find you specific path, you will need it the quick-start config. 
 
 ```bash
 meshcli -s /dev/ttyACM0
@@ -120,7 +120,7 @@ For a foreground run:
 meshcore-weather run
 ```
 
-For a background service that keeps running after you close the terminal:
+For the systemd-managed background service that keeps running after you close the terminal:
 
 ```bash
 meshcore-weather quick-start
@@ -141,11 +141,8 @@ meshcore-weather quick-start
 - `meshcore-weather run`
   - Starts the gateway in the foreground.
 
-- `meshcore-weather service`
-  - Starts the gateway in the background as a detached process.
-
 - `meshcore-weather stop`
-  - Stops the background gateway process started by `service`.
+  - Stops the running systemd service.
 
 ### Systemd service management
 
@@ -157,9 +154,6 @@ meshcore-weather quick-start
 
 - `meshcore-weather start`
   - Starts the systemd service now.
-
-- `meshcore-weather stop`
-  - Stops the running systemd service.
 
 - `meshcore-weather status`
   - Shows the current status of the systemd service.

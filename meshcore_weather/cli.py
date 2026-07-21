@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import os
-import shutil
-import signal
 import subprocess
 import sys
 import threading
@@ -17,8 +14,6 @@ from meshcore_weather.config import load_config
 from meshcore_weather.gateway import run_gateway, run_test_mode
 from meshcore_weather.setup_wizard import run_setup
 from meshcore_weather.version import __version__
-
-PID_FILE = Path("/tmp/meshcore-weather.pid")
 
 console = Console()
 
@@ -65,7 +60,7 @@ def main() -> None:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=["run", "service", "stop", "install", "enable", "start", "stop", "status", "quick-start", "test", "validate"],
+        choices=["run", "stop", "install", "enable", "start", "status", "quick-start", "test", "validate"],
         help="Command to execute.",
     )
 
@@ -97,24 +92,6 @@ def main() -> None:
             run_gateway(config_path)
         except KeyboardInterrupt:
             console.print("[yellow]Gateway interrupted.[/yellow]")
-        return
-
-    if args.command == "service":
-        try:
-            if PID_FILE.exists():
-                pid = int(PID_FILE.read_text(encoding="utf-8").strip())
-                if os.path.exists(f"/proc/{pid}"):
-                    console.print("[yellow]Gateway is already running in the background.[/yellow]")
-                    return
-                PID_FILE.unlink(missing_ok=True)
-
-            command = [sys.executable, "-m", "meshcore_weather.main", "run", "--config", str(config_path)]
-            with open("/tmp/meshcore-weather.log", "a", encoding="utf-8") as handle:
-                process = subprocess.Popen(command, stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
-            PID_FILE.write_text(str(process.pid), encoding="utf-8")
-            console.print(f"[green]Gateway started in the background with PID {process.pid}[/green]")
-        except Exception as exc:
-            console.print(f"[red]Unable to start gateway service: {exc}[/red]")
         return
 
     if args.command == "install":
