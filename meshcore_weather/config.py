@@ -42,7 +42,7 @@ class GatewayConfig:
         if self.poll_interval_seconds < 10:
             errors.append("poll_interval_seconds")
 
-        if self.repeat_interval_minutes < 1:
+        if self.repeat_interval_minutes < 0:
             errors.append("repeat_interval_minutes")
 
         return errors

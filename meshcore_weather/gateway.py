@@ -54,7 +54,7 @@ def run_gateway(config_path: Path | str | None = None, stop_event: threading.Eve
         filtered = filter_alerts(alerts, config, location_zones=fetch_location_zones(location))
 
         for alert in filtered:
-            if not tracker.should_broadcast(alert.id):
+            if not tracker.should_broadcast(alert.id, repeat_interval_minutes=config.repeat_interval_minutes):
                 continue
 
             message = format_alert_message(

@@ -4,6 +4,8 @@ from meshcore_weather.setup_wizard import (
     build_configuration_summary,
     build_setup_defaults,
     get_alert_type_choices,
+    parse_coordinate_pair,
+    prompt_with_retries,
 )
 
 
@@ -49,3 +51,23 @@ def test_build_setup_defaults_uses_existing_config_values() -> None:
 
 def test_alert_type_choices_use_full_supported_list() -> None:
     assert get_alert_type_choices() == SUPPORTED_ALERT_TYPES
+
+
+def test_prompt_with_retries_retries_until_value_is_valid() -> None:
+    responses = iter(["bad", "42"])
+
+    def prompt_user(_prompt: str, default: str | None = None) -> str:
+        return next(responses)
+
+    result = prompt_with_retries(
+        prompt_text="Enter a number",
+        validator=lambda value: int(value),
+        prompt_func=prompt_user,
+        default="0",
+    )
+
+    assert result == 42
+
+
+def test_parse_coordinate_pair_supports_lat_long_input() -> None:
+    assert parse_coordinate_pair("40.7, -74.0") == (40.7, -74.0)

@@ -55,14 +55,17 @@ def validate_poll_interval(value: int | str) -> int:
 
 
 def validate_repeat_interval(value: int | str) -> int:
-    """Return a validated repeat interval in minutes."""
+    """Return a validated repeat interval in minutes.
+
+    A value of 0 disables repeated alerts.
+    """
     try:
         parsed = int(str(value).strip())
     except ValueError as exc:
         raise ValueError("repeat interval must be an integer") from exc
 
-    if parsed < 1:
-        raise ValueError("repeat interval must be at least 1 minute")
+    if parsed < 0:
+        raise ValueError("repeat interval must be 0 or greater")
 
     return parsed
 

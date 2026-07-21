@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Callable
 
 from rich.console import Console
 from rich.prompt import Confirm, IntPrompt, Prompt
@@ -70,6 +71,34 @@ def get_alert_type_choices() -> list[str]:
     return list(SUPPORTED_ALERT_TYPES)
 
 
+def prompt_with_retries(
+    prompt_text: str,
+    validator: Callable[[str], object],
+    prompt_func: Callable[[str, str | None], str] | None = None,
+    default: str | None = None,
+) -> object:
+    """Prompt until the user enters a value that validates successfully."""
+    prompt_fn = prompt_func or (lambda text, default_value=None: Prompt.ask(text, default=default_value))
+
+    while True:
+        try:
+            raw_value = prompt_fn(prompt_text, default)
+            return validator(raw_value)
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/red]")
+
+
+def parse_coordinate_pair(raw_value: str) -> tuple[float, float]:
+    """Parse a combined latitude/longitude pair entered as lat,long."""
+    parts = [part.strip() for part in raw_value.split(",")]
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        raise ValueError("enter coordinates as latitude,longitude")
+
+    latitude = validate_latitude(parts[0])
+    longitude = validate_longitude(parts[1])
+    return latitude, longitude
+
+
 def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
     """Run the interactive setup wizard."""
     destination = Path(config_path) if config_path is not None else Path("config.yaml")
@@ -105,17 +134,15 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
         show_default=True,
     ).strip()
 
-    latitude_value = validate_latitude(
-        Prompt.ask(
-            "Latitude",
-            default=str(defaults["latitude"]) if defaults["latitude"] is not None else "",
-        )
+    default_coordinates = (
+        f"{defaults['latitude']}, {defaults['longitude']}"
+        if defaults["latitude"] is not None and defaults["longitude"] is not None
+        else ""
     )
-    longitude_value = validate_longitude(
-        Prompt.ask(
-            "Longitude",
-            default=str(defaults["longitude"]) if defaults["longitude"] is not None else "",
-        )
+    latitude_value, longitude_value = prompt_with_retries(
+        "Latitude,Longitude",
+        parse_coordinate_pair,
+        default=default_coordinates,
     )
 
     alert_type_choices = []
@@ -148,17 +175,21 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
         show_default=True,
     ).strip() or "#weather-alert"
 
-    poll_interval = validate_poll_interval(
-        IntPrompt.ask(
-            "Check for alerts every how many seconds?",
-            default=int(defaults["poll_interval"]),
-        )
+    poll_interval = prompt_with_retries(
+        "Check for alerts every how many seconds?",
+        validate_poll_interval,
+        prompt_func=lambda text, default_value=None: str(
+            IntPrompt.ask(text, default=int(default_value or defaults["poll_interval"]))
+        ),
+        default=str(defaults["poll_interval"]),
     )
-    repeat_interval = validate_repeat_interval(
-        IntPrompt.ask(
-            "Repeat active alerts every how many minutes?",
-            default=int(defaults["repeat_interval"]),
-        )
+    repeat_interval = prompt_with_retries(
+        "Repeat active alerts every how many minutes? (enter 0 to disable)",
+        validate_repeat_interval,
+        prompt_func=lambda text, default_value=None: str(
+            IntPrompt.ask(text, default=int(default_value or defaults["repeat_interval"]))
+        ),
+        default=str(defaults["repeat_interval"]),
     )
 
     config = GatewayConfig(
