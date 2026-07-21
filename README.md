@@ -38,7 +38,7 @@ python -m pip install -r requirements.txt
 You can start the CLI directly from the repository root with:
 
 ```bash
-python -m meshcore_weather.main quick-start
+python -m meshcore_weather quick-start
 ```
 
 This runs the app from source and does not require installing it with pip.
@@ -48,7 +48,7 @@ If you are new to this project, the easiest path is:
 ### 1. Run the setup and start the service
 
 ```bash
-python -m meshcore_weather.main quick-start
+python -m meshcore_weather quick-start
 ```
 
 This command will:
@@ -67,13 +67,13 @@ The setup wizard will ask for:
 If you want to change those settings later, run:
 
 ```bash
-python -m meshcore_weather.main --setup
+python -m meshcore_weather --setup
 ```
 
 ### 2. Validate the configuration
 
 ```bash
-python -m meshcore_weather.main validate
+python -m meshcore_weather validate
 ```
 
 ### 3. Choose how to run it
@@ -81,70 +81,70 @@ python -m meshcore_weather.main validate
 For a one-time test run:
 
 ```bash
-python -m meshcore_weather.main test
+python -m meshcore_weather test
 ```
 
 For a foreground run:
 
 ```bash
-python -m meshcore_weather.main run
+python -m meshcore_weather run
 ```
 
 For a background service that keeps running after you close the terminal:
 
 ```bash
-python -m meshcore_weather.main quick-start
+python -m meshcore_weather quick-start
 ```
 
 ## Command reference
 
 ### Setup and configuration
 
-- `python -m meshcore_weather.main --setup`
+- `python -m meshcore_weather --setup`
   - Launches the interactive setup wizard for changing configuration values later.
 
-- `python -m meshcore_weather.main validate`
+- `python -m meshcore_weather validate`
   - Checks that your configuration file is complete and valid.
 
 ### Running the gateway
 
-- `python -m meshcore_weather.main run`
+- `python -m meshcore_weather run`
   - Starts the gateway in the foreground.
 
-- `python -m meshcore_weather.main service`
+- `python -m meshcore_weather service`
   - Starts the gateway in the background as a detached process.
 
-- `python -m meshcore_weather.main stop`
+- `python -m meshcore_weather stop`
   - Stops the background gateway process started by `service`.
 
 ### Systemd service management
 
-- `python -m meshcore_weather.main install`
+- `python -m meshcore_weather install`
   - Installs the systemd service unit file.
 
-- `python -m meshcore_weather.main enable`
+- `python -m meshcore_weather enable`
   - Enables the service so it starts at boot.
 
-- `python -m meshcore_weather.main start`
+- `python -m meshcore_weather start`
   - Starts the systemd service now.
 
-- `python -m meshcore_weather.main stop`
+- `python -m meshcore_weather stop`
   - Stops the running systemd service.
 
-- `python -m meshcore_weather.main status`
+- `python -m meshcore_weather status`
   - Shows the current status of the systemd service.
 
-- `python -m meshcore_weather.main quick-start`
+- `python -m meshcore_weather quick-start`
   - Runs setup if needed, then installs, enables, and starts the service.
 
 ### Testing
 
-- `python -m meshcore_weather.main test`
+- `python -m meshcore_weather test`
   - Sends a test alert or forecast message using the current configuration.
 
 ### Version
 
-- `python -m meshcore_weather.main --version`
+- `python -m meshcore_weather --version`
   - Prints the installed version number.
 
 ## Recommended beginner workflow
@@ -152,8 +152,8 @@ python -m meshcore_weather.main quick-start
 If you are setting this up for the first time, this is the easiest path:
 
 ```bash
-python -m meshcore_weather.main quick-start
-python -m meshcore_weather.main validate
+python -m meshcore_weather quick-start
+python -m meshcore_weather validate
 ```
 
 That sequence will:
