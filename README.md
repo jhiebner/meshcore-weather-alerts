@@ -109,6 +109,8 @@ meshcore-weather --setup
 meshcore-weather validate
 ```
 
+The validate command now prints the config file path, the loaded values it checked, and field-by-field status so you can see exactly what passed or failed.
+
 ### 3. Choose how to run it
 
 For a one-time test run:

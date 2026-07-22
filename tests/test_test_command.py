@@ -5,7 +5,7 @@ from meshcore_weather.nws import Alert, ForecastPeriod
 def test_run_test_mode_uses_configured_channel(tmp_path) -> None:
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
-        "meshcore:\n  serial_port: /dev/ttyUSB0\n  channel: '#weather-alert'\n",
+        "meshcore:\n  serial_port: /dev/ttyUSB0\n  channel: '#weather-alerts'\n",
         encoding="utf-8",
     )
 
@@ -17,7 +17,7 @@ def test_run_test_mode_uses_configured_channel(tmp_path) -> None:
 def test_run_test_mode_fetches_alerts_and_broadcasts_one(tmp_path, monkeypatch) -> None:
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
-        "meshcore:\n  serial_port: /dev/ttyUSB0\n  channel: '#weather-alert'\n"
+        "meshcore:\n  serial_port: /dev/ttyUSB0\n  channel: '#weather-alerts'\n"
         "weather:\n  latitude: 40.7\n  longitude: -74.0\n  alert_types:\n    - Tornado Warning\n"
         "schedule:\n  poll_interval_seconds: 60\n  repeat_interval_minutes: 15\n",
         encoding="utf-8",
@@ -60,14 +60,14 @@ def test_run_test_mode_fetches_alerts_and_broadcasts_one(tmp_path, monkeypatch) 
     result = run_test_mode(config_path)
 
     assert result is True
-    assert captured["channel"] == "#weather-alert"
+    assert captured["channel"] == "#weather-alerts"
     assert "TORNADO WARNING" in str(captured["message"]).upper()
 
 
 def test_run_test_mode_uses_forecast_when_alert_is_out_of_area(tmp_path, monkeypatch) -> None:
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
-        "meshcore:\n  serial_port: /dev/ttyUSB0\n  channel: '#weather-alert'\n"
+        "meshcore:\n  serial_port: /dev/ttyUSB0\n  channel: '#weather-alerts'\n"
         "weather:\n  latitude: 40.7\n  longitude: -74.0\n  alert_types:\n    - Tornado Warning\n"
         "schedule:\n  poll_interval_seconds: 60\n  repeat_interval_minutes: 15\n",
         encoding="utf-8",
@@ -122,6 +122,6 @@ def test_run_test_mode_uses_forecast_when_alert_is_out_of_area(tmp_path, monkeyp
     result = run_test_mode(config_path)
 
     assert result is True
-    assert captured["channel"] == "#weather-alert"
+    assert captured["channel"] == "#weather-alerts"
     assert "TODAY" in str(captured["message"]).upper()
     assert "82F" in str(captured["message"]).upper()

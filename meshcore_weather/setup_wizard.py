@@ -9,7 +9,7 @@ from typing import Callable
 from rich.console import Console
 from rich.prompt import Confirm, IntPrompt, Prompt
 
-from meshcore_weather.config import GatewayConfig, save_config
+from meshcore_weather.config import GatewayConfig, build_configuration_summary, save_config
 from meshcore_weather.constants import SUPPORTED_ALERT_TYPES
 from meshcore_weather.meshcore_client import MeshCoreClient
 from meshcore_weather.validators import (
@@ -23,37 +23,6 @@ from meshcore_weather.validators import (
 console = Console()
 
 
-def build_configuration_summary(config: GatewayConfig) -> str:
-    """Create a short human-friendly summary of the configuration."""
-    lines = [
-        "Configuration summary",
-        f"- MeshCore serial port: {config.serial_port or 'Not set'}",
-        f"- Latitude: {config.latitude if config.latitude is not None else 'Not set'}",
-        f"- Longitude: {config.longitude if config.longitude is not None else 'Not set'}",
-    ]
-
-    lines.extend(
-        [
-            "- Alert types:",
-        ]
-    )
-
-    if config.alert_types:
-        for alert_type in config.alert_types:
-            lines.append(f"  - {alert_type}")
-    else:
-        lines.append("  - None")
-
-    lines.extend(
-        [
-            f"- MeshCore channel: {config.meshcore_channel or '#weather-alert'}",
-            f"- Check interval: {config.poll_interval_seconds} seconds",
-            f"- Repeat interval: {config.repeat_interval_minutes} minutes",
-        ]
-    )
-    return "\n".join(lines)
-
-
 def build_setup_defaults(existing_config: GatewayConfig | None = None) -> dict[str, object]:
     """Return prompt defaults based on any existing saved configuration."""
     config = existing_config or GatewayConfig()
@@ -62,7 +31,7 @@ def build_setup_defaults(existing_config: GatewayConfig | None = None) -> dict[s
         "latitude": config.latitude,
         "longitude": config.longitude,
         "alert_type_choices": list(config.alert_types),
-        "meshcore_channel": config.meshcore_channel or "#weather-alert",
+        "meshcore_channel": config.meshcore_channel or "#weather-alerts",
         "poll_interval": config.poll_interval_seconds,
         "repeat_interval": config.repeat_interval_minutes,
     }
@@ -118,7 +87,7 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
             alert_types=[],
             poll_interval_seconds=60,
             repeat_interval_minutes=15,
-            meshcore_channel="#weather-alert",
+            meshcore_channel="#weather-alerts",
         )
         try:
             from meshcore_weather.config import load_config
@@ -193,7 +162,7 @@ def run_setup(config_path: str | Path | None = None) -> GatewayConfig:
         "MeshCore channel to send alerts to",
         default=str(defaults["meshcore_channel"]),
         show_default=True,
-    ).strip() or "#weather-alert"
+    ).strip() or "#weather-alerts"
 
     poll_interval = prompt_with_retries(
         "Check for alerts every how many seconds?",

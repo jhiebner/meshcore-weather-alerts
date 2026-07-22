@@ -13,7 +13,7 @@ from pathlib import Path
 
 from rich.console import Console
 
-from meshcore_weather.config import load_config
+from meshcore_weather.config import build_configuration_summary, load_config
 from meshcore_weather.gateway import run_gateway, run_test_mode
 from meshcore_weather.setup_wizard import run_setup
 from meshcore_weather.version import __version__
@@ -153,11 +153,23 @@ def main() -> None:
 
     if args.command == "validate":
         config = load_config(config_path)
+        console.print(f"[bold]Validating configuration:[/bold] {config_path}")
+        console.print(f"[dim]Configuration file exists: {'yes' if config_path.exists() else 'no'}[/dim]")
+        console.print()
+        console.print(build_configuration_summary(config))
+        console.print()
+        console.print("[bold]Validation checks[/bold]")
+
+        for check in config.validation_checks():
+            status = "[green]OK[/green]" if check.passed else "[red]Needs attention[/red]"
+            if check.passed:
+                console.print(f"- {check.label}: {status} ({check.value})")
+            else:
+                console.print(f"- {check.label}: {status} ({check.value}) - {check.message}")
+
         errors = config.validate()
         if errors:
-            console.print("[red]Configuration is invalid:[/red]")
-            for error in errors:
-                console.print(f"- {error}")
+            console.print("[red]Configuration is invalid.[/red]")
             return
 
         console.print("[green]Configuration is valid.[/green]")

@@ -93,10 +93,77 @@ def test_build_service_unit_contents_replaces_execstart(tmp_path: Path) -> None:
     assert "ExecStart=/usr/local/bin/meshcore-weather run --config /opt/meshcore-weather/config.yaml" in rendered
 
 
+def test_validate_command_shows_loaded_configuration(monkeypatch, tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "meshcore:\n"
+        "  serial_port: /dev/ttyUSB0\n"
+        "  channel: '#weather-alerts'\n"
+        "weather:\n"
+        "  latitude: 40.7\n"
+        "  longitude: -74.0\n"
+        "  alert_types:\n"
+        "    - Tornado Warning\n"
+        "schedule:\n"
+        "  poll_interval_seconds: 60\n"
+        "  repeat_interval_minutes: 15\n"
+        "logging:\n"
+        "  level: INFO\n",
+        encoding="utf-8",
+    )
+
+    prints = []
+
+    def fake_print(*args, **kwargs):
+        prints.append(" ".join(str(arg) for arg in args))
+
+    monkeypatch.setattr("meshcore_weather.cli.console.print", fake_print)
+    monkeypatch.setattr("sys.argv", ["meshcore-weather", "validate", "--config", str(config_path)])
+
+    main()
+
+    assert any(str(config_path) in message for message in prints)
+    assert any("Configuration file exists: yes" in message for message in prints)
+    assert any("MeshCore serial port: /dev/ttyUSB0" in message for message in prints)
+    assert any("Validation checks" in message for message in prints)
+    assert any("Alert types: [green]OK[/green]" in message for message in prints)
+    assert any("Configuration is valid." in message for message in prints)
+
+
+def test_validate_command_reports_invalid_configuration(monkeypatch, tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "meshcore:\n"
+        "  serial_port: ''\n"
+        "weather:\n"
+        "  latitude: 40.7\n"
+        "  longitude: -74.0\n"
+        "schedule:\n"
+        "  poll_interval_seconds: 5\n"
+        "  repeat_interval_minutes: -1\n",
+        encoding="utf-8",
+    )
+
+    prints = []
+
+    def fake_print(*args, **kwargs):
+        prints.append(" ".join(str(arg) for arg in args))
+
+    monkeypatch.setattr("meshcore_weather.cli.console.print", fake_print)
+    monkeypatch.setattr("sys.argv", ["meshcore-weather", "validate", "--config", str(config_path)])
+
+    main()
+
+    assert any("MeshCore serial port: [red]Needs attention[/red]" in message for message in prints)
+    assert any("Poll interval: [red]Needs attention[/red]" in message for message in prints)
+    assert any("Repeat interval: [red]Needs attention[/red]" in message for message in prints)
+    assert any("Configuration is invalid." in message for message in prints)
+
+
 def test_quick_start_reports_status_when_service_stays_inactive(monkeypatch, tmp_path: Path) -> None:
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
-        "meshcore:\n  serial_port: /dev/ttyUSB0\n  channel: '#weather-alert'\n"
+        "meshcore:\n  serial_port: /dev/ttyUSB0\n  channel: '#weather-alerts'\n"
         "weather:\n  latitude: 40.7\n  longitude: -74.0\n  alert_types:\n    - Tornado Warning\n"
         "schedule:\n  poll_interval_seconds: 60\n  repeat_interval_minutes: 15\n",
         encoding="utf-8",
