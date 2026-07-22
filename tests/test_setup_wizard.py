@@ -50,6 +50,11 @@ def test_build_setup_defaults_uses_existing_config_values() -> None:
     assert defaults["repeat_interval"] == 30
 
 
+def test_build_setup_defaults_uses_acm0_when_no_existing_serial_port() -> None:
+    defaults = build_setup_defaults(GatewayConfig())
+    assert defaults["serial_port"] == "/dev/ttyACM0"
+
+
 def test_alert_type_choices_use_full_supported_list() -> None:
     assert get_alert_type_choices() == SUPPORTED_ALERT_TYPES
 

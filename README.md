@@ -33,7 +33,6 @@ python3 -m pip install -r requirements.txt
 sudo python3 -m pip install .
 ```
 
-For systemd usage (`quick-start`, `install`, `enable`, `start`), `meshcore-weather` must be installed system-wide so the service runs outside any virtual environment.
 
 Before running the weather gateway setup, open `meshcore-cli` and create the MeshCore channel you want the weather alerts to use. "/dev/ttyACM0" is the device port path, you will need to find you specific path, you will need it the quick-start config. 
 
@@ -67,7 +66,7 @@ Exit meshcli by typing:
 quit
 ```
 
-To start the meshcore-weather service:
+### To start the meshcore-weather service:
 
 ### 1. Run the setup and start the service
 
@@ -138,8 +137,6 @@ meshcore-weather quick-start
 - `meshcore-weather run`
   - Starts the gateway in the foreground.
 
-- `meshcore-weather stop`
-  - Stops the running systemd service.
 
 ### Systemd service management
 
@@ -152,11 +149,15 @@ meshcore-weather quick-start
 - `meshcore-weather start`
   - Starts the systemd service now.
 
+- `meshcore-weather stop`
+  - Stops the running systemd service.
+
 - `meshcore-weather status`
   - Shows the current status of the systemd service.
 
 - `meshcore-weather quick-start`
   - Runs setup if needed, then installs, enables, and starts the service.
+
 
 ### Testing
 

@@ -58,7 +58,7 @@ def build_setup_defaults(existing_config: GatewayConfig | None = None) -> dict[s
     """Return prompt defaults based on any existing saved configuration."""
     config = existing_config or GatewayConfig()
     return {
-        "serial_port": config.serial_port or "/dev/ttyUSB0",
+        "serial_port": config.serial_port or "/dev/ttyACM0",
         "latitude": config.latitude,
         "longitude": config.longitude,
         "alert_type_choices": list(config.alert_types),
