@@ -17,9 +17,8 @@ The gateway:
 - Internet connection
 - A MeshCore device connected by serial port
 
-## Run from a local checkout
 
-If you want to run the project directly from the GitHub repository on a fresh Ubuntu machine, use these steps:
+Installation process:
 
 ```bash
 sudo apt update
@@ -68,15 +67,7 @@ Exit meshcli by typing:
 quit
 ```
 
-You can start the CLI directly from the repository root with:
-
-```bash
-meshcore-weather quick-start
-```
-
-This runs the app from source and does not require installing it with pip.
-
-If you are new to this project, the easiest path is:
+To start the meshcore-weather service:
 
 ### 1. Run the setup and start the service
 
@@ -177,21 +168,6 @@ meshcore-weather quick-start
 - `meshcore-weather --version`
   - Prints the installed version number.
 
-## Recommended beginner workflow
-
-If you are setting this up for the first time, this is the easiest path:
-
-```bash
-meshcore-weather quick-start
-meshcore-weather validate
-```
-
-That sequence will:
-1. configure the program if needed
-2. install the service
-3. enable it
-4. start it in the background
-5. verify the config
 
 ## Notes
 
