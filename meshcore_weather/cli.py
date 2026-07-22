@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 from pathlib import Path
 
@@ -51,6 +53,45 @@ def reload_systemd_daemon() -> None:
     if os.geteuid() != 0:
         command = ["sudo", *command]
     subprocess.run(command, check=True)
+
+
+def resolve_system_meshcore_executable() -> str:
+    """Return an absolute meshcore-weather executable path outside virtual environments."""
+    preferred_paths = [
+        "/usr/local/bin/meshcore-weather",
+        "/usr/bin/meshcore-weather",
+    ]
+    for candidate in preferred_paths:
+        candidate_path = Path(candidate)
+        if candidate_path.exists() and os.access(candidate_path, os.X_OK):
+            return str(candidate_path)
+
+    discovered = shutil.which("meshcore-weather")
+    if not discovered:
+        raise RuntimeError(
+            "meshcore-weather command not found on system PATH. Install it system-wide before running install/quick-start."
+        )
+
+    virtual_env = os.environ.get("VIRTUAL_ENV", "")
+    in_virtual_env = "/.venv/" in discovered or (virtual_env and discovered.startswith(virtual_env))
+    if in_virtual_env:
+        raise RuntimeError(
+            "meshcore-weather was found only inside a virtual environment. Install it system-wide so systemd can run it outside the venv."
+        )
+
+    return discovered
+
+
+def build_service_unit_contents(service_file: Path, exec_path: str, config_path: Path) -> str:
+    """Return service unit text with an absolute ExecStart for systemd."""
+    lines = service_file.read_text(encoding="utf-8").splitlines()
+    rendered = []
+    for line in lines:
+        if line.startswith("ExecStart="):
+            rendered.append(f"ExecStart={exec_path} run --config {config_path}")
+        else:
+            rendered.append(line)
+    return "\n".join(rendered) + "\n"
 
 
 def get_service_unit_path() -> Path:
@@ -135,19 +176,27 @@ def main() -> None:
             runtime_dir = Path("/opt/meshcore-weather")
             runtime_config_path = runtime_dir / "config.yaml"
             service_file = get_service_unit_path()
+            exec_path = resolve_system_meshcore_executable()
             if not service_file.exists():
                 console.print("[red]Service unit file not found.[/red]")
                 return
+            rendered_unit = build_service_unit_contents(service_file, exec_path, runtime_config_path)
             if os.geteuid() == 0:
                 runtime_dir.mkdir(parents=True, exist_ok=True)
                 if config_path.exists():
                     runtime_config_path.write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
-                service_path.write_text(service_file.read_text(encoding="utf-8"), encoding="utf-8")
+                service_path.write_text(rendered_unit, encoding="utf-8")
             else:
                 subprocess.run(["sudo", "install", "-d", "/opt/meshcore-weather"], check=True)
                 if config_path.exists():
                     subprocess.run(["sudo", "install", "-Dm644", str(config_path), str(runtime_config_path)], check=True)
-                subprocess.run(["sudo", "install", "-Dm644", str(service_file), str(service_path)], check=True)
+                with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as handle:
+                    handle.write(rendered_unit)
+                    temp_unit_path = Path(handle.name)
+                try:
+                    subprocess.run(["sudo", "install", "-Dm644", str(temp_unit_path), str(service_path)], check=True)
+                finally:
+                    temp_unit_path.unlink(missing_ok=True)
             reload_systemd_daemon()
             console.print(f"[green]Installed service unit to {service_path}[/green]")
         except Exception as exc:

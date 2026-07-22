@@ -1,7 +1,15 @@
 import threading
 from pathlib import Path
 
-from meshcore_weather.cli import get_service_unit_path, main, run_gateway
+import pytest
+
+from meshcore_weather.cli import (
+    build_service_unit_contents,
+    get_service_unit_path,
+    main,
+    resolve_system_meshcore_executable,
+    run_gateway,
+)
 
 
 def test_run_gateway_exits_when_stop_event_is_set(tmp_path: Path) -> None:
@@ -43,6 +51,46 @@ def test_service_management_commands_call_systemctl(monkeypatch, tmp_path: Path)
     monkeypatch.setattr("sys.argv", ["meshcore-weather", "stop", "--config", str(config_path)])
     main()
     assert calls[-1] == ["sudo", "systemctl", "stop", "meshcore-weather"]
+
+
+def test_resolve_system_meshcore_executable_prefers_system_path(monkeypatch, tmp_path: Path) -> None:
+    local_bin = tmp_path / "meshcore-weather"
+    local_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+    local_bin.chmod(0o755)
+
+    monkeypatch.setattr("meshcore_weather.cli.Path.exists", lambda p: str(p) == str(local_bin))
+    monkeypatch.setattr("meshcore_weather.cli.os.access", lambda p, mode: str(p) == str(local_bin))
+    monkeypatch.setattr("meshcore_weather.cli.shutil.which", lambda _: str(local_bin))
+
+    result = resolve_system_meshcore_executable()
+    assert result == str(local_bin)
+
+
+def test_resolve_system_meshcore_executable_rejects_virtualenv_only(monkeypatch) -> None:
+    monkeypatch.setattr("meshcore_weather.cli.Path.exists", lambda p: False)
+    monkeypatch.setattr("meshcore_weather.cli.os.access", lambda p, mode: False)
+    monkeypatch.setattr("meshcore_weather.cli.shutil.which", lambda _: "/tmp/project/.venv/bin/meshcore-weather")
+    monkeypatch.setenv("VIRTUAL_ENV", "/tmp/project/.venv")
+
+    with pytest.raises(RuntimeError, match="virtual environment"):
+        resolve_system_meshcore_executable()
+
+
+def test_build_service_unit_contents_replaces_execstart(tmp_path: Path) -> None:
+    unit_file = tmp_path / "meshcore-weather.service"
+    unit_file.write_text(
+        "[Service]\n"
+        "ExecStart=/usr/bin/env meshcore-weather run --config /opt/meshcore-weather/config.yaml\n",
+        encoding="utf-8",
+    )
+
+    rendered = build_service_unit_contents(
+        unit_file,
+        "/usr/local/bin/meshcore-weather",
+        Path("/opt/meshcore-weather/config.yaml"),
+    )
+
+    assert "ExecStart=/usr/local/bin/meshcore-weather run --config /opt/meshcore-weather/config.yaml" in rendered
 
 
 def test_quick_start_reports_status_when_service_stays_inactive(monkeypatch, tmp_path: Path) -> None:

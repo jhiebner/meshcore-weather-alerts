@@ -23,18 +23,18 @@ If you want to run the project directly from the GitHub repository on a fresh Ub
 
 ```bash
 sudo apt update
-sudo apt install -y python3-pip python3-venv git
+sudo apt install -y python3-pip git
 
 git clone https://github.com/jhiebner/meshcore-weather-alerts.git
 cd meshcore-weather-alerts
 
-python3 -m venv .venv
-source .venv/bin/activate
-
-python -m pip install --upgrade pip
-python -m pip install meshcore-cli
-python -m pip install -r requirements.txt
+python3 -m pip install --upgrade pip
+python3 -m pip install meshcore-cli
+python3 -m pip install -r requirements.txt
+sudo python3 -m pip install .
 ```
+
+For systemd usage (`quick-start`, `install`, `enable`, `start`), `meshcore-weather` must be installed system-wide so the service runs outside any virtual environment.
 
 Before running the weather gateway setup, open `meshcore-cli` and create the MeshCore channel you want the weather alerts to use. "/dev/ttyACM0" is the device port path, you will need to find you specific path, you will need it the quick-start config. 
 
@@ -61,6 +61,12 @@ get_channels
 ```
 
 Your new channel should appear in the list and is now ready to be used by MeshCore Weather Alerts.
+
+Exit meshcli by typing:
+
+```bash
+quit
+```
 
 You can start the CLI directly from the repository root with:
 
