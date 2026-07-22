@@ -29,8 +29,15 @@ cd meshcore-weather-alerts
 
 python3 -m pip install --upgrade pip
 python3 -m pip install meshcore-cli
-python3 -m pip install -r requirements.txt
 sudo python3 -m pip install .
+```
+
+For systemd usage (`quick-start`, `install`, `enable`, `start`), `meshcore-weather` must be installed system-wide so the service runs outside any virtual environment.
+
+If you are developing or testing this project, install developer tools with:
+
+```bash
+python3 -m pip install -r requirements-dev.txt
 ```
 
 
